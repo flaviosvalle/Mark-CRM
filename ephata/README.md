@@ -36,6 +36,10 @@ git push origin v1.108.101
 
 No GitHub, em **Actions → Publicar imagem Docker (GHCR)**, a corrida da etiqueta tem de acabar verde (cerca de 20–30 min, amd64 e arm64). No fim, `stable` aponta para a versão nova nas quatro imagens.
 
+Só as etiquetas `v*` publicam imagens; um push no `main` não constrói nada.
+
+> **`v1.108.100`:** as quatro imagens foram publicadas, mas o passo que move `stable` falhou (sem permissão de leitura num repositório privado; corrigido em `458cbd5`). A instalação usa o número da versão (`1.108.100`) e não precisa do `stable`. A próxima etiqueta já o promove.
+
 ### Uma vez só: imagens públicas
 
 O GHCR cria os pacotes como **privados**, e o kit só instala imagens que consegue confirmar sem login. Depois da primeira publicação, para cada um dos quatro pacotes (`deskcommcrm`, `deskcomm-worker`, `deskcomm-scheduler`, `deskcomm-voice-agent`):

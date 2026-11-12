@@ -21,7 +21,9 @@ name: Publicar imagem Docker (GHCR)
 on:
   push:
     tags: ["v*"]
-    branches: ["main"]
+    # Fork da Ephata: só as etiquetas de versão publicam. O kit instala versões
+    # numéricas (e `stable`), nunca `latest`; construir a cada push na `main`
+    # gastava minutos do Actions de um repositório privado sem uso.
   # NÃO acrescente `release: types: [published]` aqui. Ele já esteve, e o efeito
   # foi medido na v1.3.0: `gh release create` empurra a tag E publica a release,
   # então o MESMO commit foi construído DUAS vezes, com 5 minutos de diferença.
