@@ -72,6 +72,15 @@ const SCOPES: { id: string; label: string }[] = [
     label:
       "Editar, testar, PUBLICAR, PAUSAR, DESLIGAR e ARQUIVAR o agente de IA que atende seus clientes, e criar, editar, testar e APAGAR os roteadores de IA que escolhem qual agente responde (exige papel de administrador)",
   },
+  // Escopo PRÓPRIO para integrações que mantêm o cadastro a partir de outro
+  // sistema (empresas, pessoas, vínculos, etiquetas, contatos e bloqueio).
+  // Não é `mcp:write` de propósito: `mcp:write` também envia mensagens, e um
+  // token de sincronização roubado não deve conseguir falar com clientes.
+  {
+    id: "crm:write",
+    label:
+      "Integração pode criar e editar empresas, pessoas, vínculos, etiquetas e contatos, e bloquear contatos (não envia mensagens)",
+  },
   { id: "contacts:read", label: "Ler contatos" },
   { id: "contacts:write", label: "Criar e editar contatos" },
   { id: "leads:read", label: "Ler leads" },

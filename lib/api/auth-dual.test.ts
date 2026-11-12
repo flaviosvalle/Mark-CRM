@@ -22,7 +22,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import type { AuthUser } from "@/lib/auth/types";
 import { McpAuthError } from "@/lib/mcp/auth";
 
-import { resolveAuthDual } from "./auth-dual";
+import { ESCOPO_ESCRITA_CRM, resolveAuthDual } from "./auth-dual";
 
 vi.mock("@/lib/auth/require-role", () => ({ requireRole: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn(async () => ({ session: true })) }));
@@ -170,6 +170,49 @@ describe("resolveAuthDual", () => {
     if (!r.ok) return;
     expect(r.scopes).toBeUndefined();
     expect(r.apiTokenId).toBeUndefined();
+  });
+});
+
+describe("escopo de cadastro por integração (crm:write)", () => {
+  const CADASTRO = { ...OPCOES, resource: "companies", scope: ESCOPO_ESCRITA_CRM };
+
+  function tokenCom(scopes: string[]): void {
+    vi.mocked(validateBearerToken).mockResolvedValue({
+      organizationId: ORG_DO_TOKEN,
+      scopes,
+      role: "agent",
+      actor: { type: "api_token", id: "tok-sync" },
+      apiTokenId: "tok-sync",
+    } as never);
+  }
+
+  it("o escopo é crm:write", () => {
+    expect(ESCOPO_ESCRITA_CRM).toBe("crm:write");
+  });
+
+  it("mcp:write sozinho não escreve cadastro", async () => {
+    tokenCom(["mcp:read", "mcp:write"]);
+    const r = await resolveAuthDual(req({ authorization: "Bearer dsk_abc" }), CADASTRO);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.response.status).toBe(403);
+  });
+
+  it("crm:write escreve cadastro, com a org do token", async () => {
+    tokenCom(["mcp:read", "crm:write"]);
+    const r = await resolveAuthDual(req({ authorization: "Bearer dsk_abc" }), CADASTRO);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.organizationId).toBe(ORG_DO_TOKEN);
+    expect(r.via).toBe("token");
+  });
+
+  it("crm:write não abre rotas de mcp:write (envio de mensagens)", async () => {
+    tokenCom(["mcp:read", "crm:write"]);
+    const r = await resolveAuthDual(req({ authorization: "Bearer dsk_abc" }), OPCOES);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.response.status).toBe(403);
   });
 });
 

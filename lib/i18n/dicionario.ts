@@ -8332,6 +8332,9 @@ export const DICIONARIO: Traducoes = {
   },
   "Ler contatos": { es: "Leer contactos" },
   "Criar e editar contatos": { es: "Crear y editar contactos" },
+  "Integração pode criar e editar empresas, pessoas, vínculos, etiquetas e contatos, e bloquear contatos (não envia mensagens)": {
+    es: "La integración puede crear y editar empresas, personas, vínculos, etiquetas y contactos, y bloquear contactos (no envía mensajes)",
+  },
   "Ler leads": { es: "Leer leads" },
   "Criar e editar leads": { es: "Crear y editar leads" },
   "Ler mensagens": { es: "Leer mensajes" },

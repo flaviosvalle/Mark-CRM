@@ -12,6 +12,8 @@
  *   `agent_run:<uuid>` -> vincula tool_call ao run (Spec 10)
  *   `mcp:read`         -> habilita read tools desta wave
  *   `mcp:write`        -> habilita write tools (S-13.04)
+ *   `crm:write`        -> cadastro por integração (empresas, pessoas, vínculos,
+ *                         etiquetas, contatos, bloqueio); NÃO envia mensagens
  */
 import { createHash } from "node:crypto";
 

@@ -44,6 +44,18 @@ import { JANELA_SEGUNDOS, TETO_DE_ESCRITA, TETO_POR_ORGANIZACAO } from "@/lib/mc
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+/**
+ * Escopo das rotas de CADASTRO por integração: empresas, pessoas, vínculos
+ * empresa–pessoa, etiquetas de contato, contatos e bloqueio de contato.
+ *
+ * Separado de `mcp:write` de propósito. `mcp:write` também abre
+ * `/api/v1/messages`; um token de sincronização vindo de outro sistema (que
+ * vive num servidor que não é este) não deve conseguir enviar mensagens a
+ * clientes se for roubado. O inverso também vale: `mcp:write` sozinho não
+ * escreve cadastro por estas rotas.
+ */
+export const ESCOPO_ESCRITA_CRM = "crm:write";
+
 export type AuthDual =
   | {
       ok: true;
@@ -75,7 +87,10 @@ export interface AuthDualOptions {
   resource: string;
   /** Rank mínimo exigido nos DOIS modos (salvo `tokenRole`). */
   role: Role;
-  /** Scope exigido do token. Rotas de escrita usam `mcp:write`. */
+  /**
+   * Scope exigido do token. Rotas de escrita usam `mcp:write`; as de cadastro
+   * por integração usam `ESCOPO_ESCRITA_CRM`.
+   */
   scope: string;
   /**
    * Rank mínimo do TOKEN, quando a tool MCP da mesma escrita exige mais que a
