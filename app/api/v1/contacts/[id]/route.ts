@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { ApiError } from "@/lib/api/types";
 import { ok, fail, noContent } from "@/lib/api/wrappers";
+import { ESCOPO_ESCRITA_CRM, resolveAuthDual, tetoDeEscritaDoToken } from "@/lib/api/auth-dual";
 import { orgAtivaDaApi, requireRole } from "@/lib/auth/require-role";
 import { loadAuthUser } from "@/lib/auth/server";
 import { traduzir } from "@/lib/i18n/dicionario";
@@ -136,16 +137,23 @@ export async function PATCH(
   const requestId = randomUUID();
   const { id } = await ctx.params;
 
-  const supabase = await createClient();
-  // spec 13 §4: escrita é agent+ (viewer é read-only).
-  const authz = await requireRole("agent", { requestId, resource: "contacts" });
+  // spec 13 §4: escrita é agent+ (viewer é read-only). Sessão OU Bearer com
+  // `crm:write` (cadastro por integração, inclusive `tags`); a org sai da
+  // linha do token e o handler filtra toda leitura e escrita por ela.
+  const authz = await resolveAuthDual(req, {
+    requestId,
+    resource: "contacts",
+    role: "agent",
+    scope: ESCOPO_ESCRITA_CRM,
+  });
   if (!authz.ok) return authz.response;
-  const user = authz.user;
-  const activeOrg = authz.org;
+  const teto = await tetoDeEscritaDoToken(authz, "contacts", requestId);
+  if (teto) return teto;
+  const { supabase, organizationId } = authz;
 
   // O documento do titular é validado pela régua do PAÍS da organização (issue
   // #1033) — a mesma razão do POST: quem decide é a organização, não o corpo.
-  const perfil = await perfilDaOrganizacao(supabase, activeOrg.orgId);
+  const perfil = await perfilDaOrganizacao(supabase, organizationId);
 
   let input;
   try {
@@ -164,10 +172,10 @@ export async function PATCH(
     const contact = await patchContactHandler(
       supabase,
       {
-        organization_id: activeOrg.orgId,
-        actor: { type: "user", id: user.id },
+        organization_id: organizationId,
+        actor: authz.actor,
         requestId,
-        idioma: user.idioma,
+        idioma: authz.idioma,
       },
       id,
       input,

@@ -219,6 +219,11 @@ export const PUBLIC_PATHS: RegExp[] = [
   /^\/api\/v1\/company-people$/,
   /^\/api\/v1\/company-people\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
   /^\/api\/v1\/contacts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/person$/i,
+  // Contato por integração (mesmo escopo `crm:write`): PATCH do cadastro
+  // (inclusive `tags`) e o bloqueio. GET e DELETE de `/contacts/:id`
+  // continuam só-sessão (`requireRole` na rota); `unblock` não entra.
+  /^\/api\/v1\/contacts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  /^\/api\/v1\/contacts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/block$/i,
   /^\/_next\//,
   /^\/favicon\.ico$/,
   // O ícone da aba (`app/icon.tsx`), que o `<head>` de TODA página pede —

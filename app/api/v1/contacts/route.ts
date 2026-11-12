@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ApiError } from "@/lib/api/types";
 import { ok, fail } from "@/lib/api/wrappers";
 import type { Actor } from "@/lib/api/handlers/types";
+import { ESCOPO_ESCRITA_CRM, resolveAuthDual, tetoDeEscritaDoToken } from "@/lib/api/auth-dual";
 import { requireRole } from "@/lib/auth/require-role";
 import { extractBearer, validateBearerToken, ensureRole, ensureScope, McpAuthError } from "@/lib/mcp/auth";
 import { traduzir } from "@/lib/i18n/dicionario";
@@ -164,17 +165,23 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (supportDenied) return supportDenied;
 
   const requestId = randomUUID();
-  const supabase = await createClient();
-  // spec 13 §4: escrita é agent+ (viewer é read-only).
-  const authz = await requireRole("agent", { requestId, resource: "contacts" });
+  // spec 13 §4: escrita é agent+ (viewer é read-only). Sessão OU Bearer com
+  // `crm:write` (cadastro por integração); a org sai da linha do token.
+  const authz = await resolveAuthDual(req, {
+    requestId,
+    resource: "contacts",
+    role: "agent",
+    scope: ESCOPO_ESCRITA_CRM,
+  });
   if (!authz.ok) return authz.response;
-  const user = authz.user;
-  const activeOrg = authz.org;
+  const teto = await tetoDeEscritaDoToken(authz, "contacts", requestId);
+  if (teto) return teto;
+  const { supabase, organizationId } = authz;
 
   // O documento do titular é validado pela régua do PAÍS da organização (issue
   // #1033): quem decide é a coluna `organizations.country`, nunca o corpo da
   // requisição — mesma doutrina da moeda em `lib/catalogo/moeda-da-org.ts`.
-  const perfil = await perfilDaOrganizacao(supabase, activeOrg.orgId);
+  const perfil = await perfilDaOrganizacao(supabase, organizationId);
 
   let input;
   try {
@@ -193,13 +200,17 @@ export async function POST(req: NextRequest): Promise<Response> {
     const result = await createContactHandler(
       supabase,
       {
-        organization_id: activeOrg.orgId,
+        organization_id: organizationId,
         // O PAPEL vai junto porque a criação no "Só os seus" decide por ele:
         // só Atendente ganha a conversa do contato novo (#3479). É a mesma
-        // forma que as rotas de conversa já usam no `actor`.
-        actor: { type: "user", id: user.id, role: activeOrg.role },
+        // forma que as rotas de conversa já usam no `actor`. O token entra com
+        // o próprio ator (`api_token`): integração não é atendente.
+        actor:
+          authz.via === "session"
+            ? { type: "user", id: authz.actor.id, role: authz.role }
+            : authz.actor,
         requestId,
-        idioma: user.idioma,
+        idioma: authz.idioma,
       },
       input as ContactCreate,
     );

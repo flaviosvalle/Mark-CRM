@@ -12618,6 +12618,7 @@ export const DICIONARIO: Traducoes = {
   "Contato não encontrado.": { es: "Contacto no encontrado." },
   "Contato inválido.": { es: "Contacto inválido." },
   "Não foi possível desbloquear o contato.": { es: "No fue posible desbloquear el contacto." },
+  "Não foi possível bloquear o contato.": { es: "No fue posible bloquear el contacto." },
   Desbloquear: { es: "Desbloquear" },
   "Desbloquear este contato?": { es: "¿Desbloquear este contacto?" },
   "Este contato pediu para não receber mais mensagens. Desbloquear volta a permitir campanhas, follow-ups e respostas da IA para ele, e a ação fica registrada na auditoria em seu nome.": { es: "Este contacto pidió no recibir más mensajes. Desbloquearlo vuelve a permitir campañas, seguimientos y respuestas de la IA para él, y la acción queda registrada en la auditoría a tu nombre." },

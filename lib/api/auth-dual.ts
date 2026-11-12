@@ -77,6 +77,14 @@ export type AuthDual =
       scopes?: string[];
       /** Id da linha do token (`api_tokens.id`) — o `actor_api_token_id` do audit. */
       apiTokenId?: string;
+      /**
+       * Papel efetivo de quem entrou: o da organização ativa na sessão, o do
+       * token (`role:*` nos escopos) no Bearer. Fica FORA do `actor` de
+       * propósito: pôr o papel no ator da sessão mudaria as rotas que hoje o
+       * recebem sem papel. Quem precisa dele (criar contato no "Só os seus")
+       * lê daqui.
+       */
+      role?: Role;
     }
   | { ok: false; response: Response };
 
@@ -151,6 +159,7 @@ export async function resolveAuthDual(
       via: "token",
       scopes: auth.scopes,
       apiTokenId: auth.apiTokenId,
+      role: auth.role,
     };
   }
 
@@ -163,6 +172,7 @@ export async function resolveAuthDual(
     supabase: await createClient(),
     idioma: authz.user.idioma,
     via: "session",
+    role: authz.org.role,
   };
 }
 
