@@ -46,7 +46,13 @@
  * reprova lá. Não remova essa derivação pensando que é redundante — ela é o que
  * torna a âncora não-falsificável de dentro do diff.
  */
-export const NAMESPACE_DESTE_REPO = "ghcr.io/melgarafael";
+export const NAMESPACE_DESTE_REPO = "ghcr.io/flaviosvalle";
+/**
+ * Nome do repositório no GitHub (o fork da Ephata chama-se `Mark-CRM`, não
+ * `DeskcommCRM`). Os defaults de `REPO_URL` e os labels de origem das imagens
+ * derivam de `DONO_DESTE_REPO` + este nome.
+ */
+export const NOME_DESTE_REPO = "Mark-CRM";
 
 /**
  * O dono de uma referência `<registry>/<dono>`.
