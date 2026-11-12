@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api/types";
 import type { HandlerCtx } from "@/lib/api/handlers/types";
 import { audit } from "@/lib/audit";
 import { type Autor, autoria, autoriaDoAudit } from "@/lib/crm-b2b/autoria";
+import { validarIdentificadorFiscal } from "@/lib/legal/perfil-do-pais";
 import {
   createBrasilApiClient,
   mapBrasilApiToCompanyFields,
@@ -19,7 +20,7 @@ type SB = SupabaseClient;
 type LookupClient = { lookupCnpj(normalizedCnpj: string): Promise<BrasilApiResult> };
 
 const SELECT =
-  "id, organization_id, legal_name, trade_name, cnpj, normalized_cnpj, registration_status, legal_nature, company_size, share_capital, opened_at, main_cnae_code, main_cnae_description, secondary_cnaes, street, number, complement, district, city, state, zip_code, email, phone, enrichment_status, enriched_at, enrichment_error, created_by, created_at, updated_at";
+  "id, organization_id, legal_name, trade_name, cnpj, normalized_cnpj, registration_status, legal_nature, company_size, share_capital, opened_at, main_cnae_code, main_cnae_description, secondary_cnaes, street, number, complement, district, city, state, zip_code, email, phone, tax_id, tax_id_country, enrichment_status, enriched_at, enrichment_error, created_by, created_at, updated_at";
 
 function err(
   ctx: HandlerCtx,
@@ -94,6 +95,27 @@ export async function getCompanyHandler(supabase: SB, ctx: HandlerCtx, id: strin
   return { company: data, people: links ?? [], contacts };
 }
 
+const INDICE_DO_IDENTIFICADOR_FISCAL = "companies_org_tax_id_uidx";
+const MENSAGEM_DE_IDENTIFICADOR_DUPLICADO = "Já existe empresa com este identificador fiscal.";
+
+/**
+ * `tax_id`/`tax_id_country` do corpo → colunas, validados pela régua do país.
+ * `undefined` = o corpo não tocou no par; `tax_id` vazio/nulo limpa os dois.
+ */
+function identificadorFiscalDoCorpo(
+  ctx: HandlerCtx,
+  body: { tax_id?: string | null; tax_id_country?: string | null },
+): { tax_id: string | null; tax_id_country: string | null } | undefined {
+  if (body.tax_id === undefined && body.tax_id_country === undefined) return undefined;
+  if (body.tax_id === undefined) {
+    err(ctx, 422, "validation_failed", "Envie tax_id junto com tax_id_country.");
+  }
+  if (!body.tax_id) return { tax_id: null, tax_id_country: null };
+  const r = validarIdentificadorFiscal(body.tax_id_country, body.tax_id);
+  if (!r.ok) err(ctx, 422, "validation_failed", r.mensagem);
+  return { tax_id: r.valor, tax_id_country: r.pais };
+}
+
 export async function createCompanyHandler(
   supabase: SB,
   ctx: HandlerCtx,
@@ -114,6 +136,18 @@ export async function createCompanyHandler(
     if (dup) err(ctx, 409, "conflict", "Já existe empresa com este CNPJ.");
   }
 
+  const fiscal = identificadorFiscalDoCorpo(ctx, body);
+  if (fiscal?.tax_id) {
+    const { data: dupFiscal } = await supabase
+      .from("companies")
+      .select("id")
+      .eq("organization_id", ctx.organization_id)
+      .eq("tax_id_country", fiscal.tax_id_country)
+      .eq("tax_id", fiscal.tax_id)
+      .maybeSingle();
+    if (dupFiscal) err(ctx, 409, "conflict", MENSAGEM_DE_IDENTIFICADOR_DUPLICADO);
+  }
+
   const insert = {
     organization_id: ctx.organization_id,
     legal_name: body.legal_name || null,
@@ -129,12 +163,17 @@ export async function createCompanyHandler(
     city: body.city || null,
     state: body.state || null,
     zip_code: body.zip_code || null,
+    tax_id: fiscal?.tax_id ?? null,
+    tax_id_country: fiscal?.tax_id_country ?? null,
     enrichment_status: "pending" as const,
     created_by: autoria(autor).userId,
   };
 
   const { data, error } = await supabase.from("companies").insert(insert).select(SELECT).single();
   if (error) {
+    if (error.code === "23505" && error.message.includes(INDICE_DO_IDENTIFICADOR_FISCAL)) {
+      err(ctx, 409, "conflict", MENSAGEM_DE_IDENTIFICADOR_DUPLICADO);
+    }
     if (error.code === "23505") err(ctx, 409, "conflict", "CNPJ já cadastrado.");
     err(ctx, 500, "internal_error", error.message);
   }
@@ -169,7 +208,7 @@ export async function patchCompanyHandler(
   const body = companyPatchSchema.parse(raw);
   const patch: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(body)) {
-    if (k === "enrich" || k === "cnpj") continue;
+    if (k === "enrich" || k === "cnpj" || k === "tax_id" || k === "tax_id_country") continue;
     if (v !== undefined) patch[k] = v === "" ? null : v;
   }
   if (body.cnpj !== undefined) {
@@ -178,6 +217,8 @@ export async function patchCompanyHandler(
     patch.cnpj = normalized ? formatCnpj(normalized) : null;
     patch.normalized_cnpj = normalized;
   }
+  const fiscal = identificadorFiscalDoCorpo(ctx, body);
+  if (fiscal) Object.assign(patch, fiscal);
 
   const { data, error } = await supabase
     .from("companies")
@@ -186,6 +227,9 @@ export async function patchCompanyHandler(
     .eq("id", id)
     .select(SELECT)
     .maybeSingle();
+  if (error?.code === "23505" && error.message.includes(INDICE_DO_IDENTIFICADOR_FISCAL)) {
+    err(ctx, 409, "conflict", MENSAGEM_DE_IDENTIFICADOR_DUPLICADO);
+  }
   if (error) err(ctx, 500, "internal_error", error.message);
   if (!data) err(ctx, 404, "not_found", "Empresa não encontrada.");
 
@@ -215,6 +259,20 @@ export async function enrichCompanyHandler(
   autor: Autor,
   id: string,
 ) {
+  // A BrasilAPI só conhece CNPJ. Empresa sem CNPJ (ex.: identificada por
+  // `tax_id` de outro país) é recusada AQUI, antes de o enriquecimento marcá-la
+  // como `failed` por "CNPJ inválido" — que é falso: não há CNPJ a validar.
+  const { data: atual, error: erroDeLeitura } = await supabase
+    .from("companies")
+    .select("id, normalized_cnpj")
+    .eq("organization_id", ctx.organization_id)
+    .eq("id", id)
+    .maybeSingle();
+  if (erroDeLeitura) err(ctx, 500, "internal_error", erroDeLeitura.message);
+  if (!atual) err(ctx, 404, "not_found", "Empresa não encontrada.");
+  if (!atual.normalized_cnpj) {
+    err(ctx, 422, "enrichment_unavailable", "Enriquecimento só existe para empresa com CNPJ.");
+  }
   const result = await enrichCompanyFromBrasilApi(supabase, {
     organizationId: ctx.organization_id,
     companyId: id,

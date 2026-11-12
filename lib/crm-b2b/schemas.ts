@@ -6,6 +6,10 @@ export const companyCreateSchema = z.object({
   legal_name: z.string().trim().min(1).max(500).optional().nullable(),
   trade_name: z.string().trim().min(1).max(500).optional().nullable(),
   cnpj: z.string().trim().max(32).optional().nullable(),
+  /** Documento fiscal fora do Brasil (ex.: NIF/NIPC). Exige `tax_id_country`. */
+  tax_id: z.string().trim().max(40).optional().nullable(),
+  /** ISO alfa-2 do país que emitiu `tax_id`. */
+  tax_id_country: z.string().trim().max(2).optional().nullable(),
   email: z.string().trim().email().optional().nullable().or(z.literal("")),
   phone: z.string().trim().max(40).optional().nullable(),
   street: z.string().max(300).optional().nullable(),

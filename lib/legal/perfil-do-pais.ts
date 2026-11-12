@@ -329,6 +329,50 @@ export function isValidNif(raw: string): boolean {
   return digito === parseInt(s[8]!, 10);
 }
 
+export type IdentificadorFiscal =
+  { ok: true; pais: CodigoDePais; valor: string } | { ok: false; mensagem: string };
+
+/**
+ * Valida o identificador fiscal de uma EMPRESA (`companies.tax_id`) pela
+ * régua do país que o emitiu (`tax_id_country`).
+ *
+ *   • PT — NIF/NIPC: 9 dígitos com o dígito de controlo da AT (`isValidNif`;
+ *     o NIPC das pessoas coletivas usa o mesmo mod-11).
+ *   • BR — recusado de propósito: o CNPJ tem coluna própria (`cnpj`), com a
+ *     validação alfanumérica da Receita e o enriquecimento da BrasilAPI. Duas
+ *     colunas para o mesmo número seriam duas verdades.
+ *   • outros — sem dígito de controlo conhecido aqui: aceita 1 a 32 letras e
+ *     dígitos (o checksum não é inventado; régua do #928).
+ *
+ * Normaliza tirando espaços, pontos, traços e barras e passando a maiúsculas.
+ */
+export function validarIdentificadorFiscal(
+  pais: string | null | undefined,
+  valor: string | null | undefined,
+): IdentificadorFiscal {
+  const codigo = (pais ?? "").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(codigo)) {
+    return {
+      ok: false,
+      mensagem: "País do identificador fiscal inválido (use ISO alfa-2, ex.: PT).",
+    };
+  }
+  const limpo = (valor ?? "").toUpperCase().replace(/[\s./-]/g, "");
+  if (!/^[0-9A-Z]{1,32}$/.test(limpo)) {
+    return {
+      ok: false,
+      mensagem: "Identificador fiscal inválido: use só letras e dígitos (até 32).",
+    };
+  }
+  if (codigo === "BR") {
+    return { ok: false, mensagem: "Para empresa brasileira, use o campo CNPJ." };
+  }
+  if (codigo === "PT" && !isValidNif(limpo)) {
+    return { ok: false, mensagem: "NIF/NIPC inválido: confira os 9 dígitos." };
+  }
+  return { ok: true, pais: codigo, valor: limpo };
+}
+
 const DOCUMENTO_BR: DocumentoDoTitular = {
   rotulo: "CPF",
   exemplo: "000.000.000-00",

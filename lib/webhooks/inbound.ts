@@ -4,7 +4,7 @@
  */
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-import { normalizePhoneBR } from "@/lib/channels/phone-variants";
+import { normalizePhoneBR, normalizePhoneDoPais } from "@/lib/channels/phone-variants";
 import type {
   AtribuicaoDeAnuncio,
   PlataformaDeAnuncio,
@@ -122,6 +122,8 @@ function firstMatch(payload: Record<string, unknown>, aliases: string[]): { key:
 export function mapInboundPayload(
   payload: Record<string, unknown>,
   fieldMap: FieldMap = {},
+  /** `organizations.country` da fonte; vazio = Brasil (régua de `normalizePhoneDoPais`). */
+  paisDaOrganizacao: string | null = null,
 ): MappedLead {
   const map: Required<FieldMap> = {
     name: [...(fieldMap.name ?? []), ...DEFAULT_FIELD_MAP.name],
@@ -152,7 +154,7 @@ export function mapInboundPayload(
 
   return {
     name: nameHit?.value ?? null,
-    phone: normalizePhoneBR(phoneHit?.value),
+    phone: normalizePhoneDoPais(phoneHit?.value, paisDaOrganizacao),
     email: emailHit?.value ?? null,
     custom_fields,
     source_metadata,

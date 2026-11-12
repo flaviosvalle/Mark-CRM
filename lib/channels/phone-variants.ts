@@ -114,3 +114,39 @@ export function normalizePhoneBR(raw: unknown): string | null {
   }
   return e164 ? canonicalPhoneBR(e164) : null;
 }
+
+/**
+ * Normaliza para E.164 pela régua do PAÍS DA ORGANIZAÇÃO (`organizations.country`).
+ *
+ * `normalizePhoneBR` adivinha `+55` para 10–11 dígitos sem `+`. Numa organização
+ * de Portugal isso transforma o fixo `2123456789`… ou qualquer número local mal
+ * digitado em telefone brasileiro, e a mensagem sai para outra pessoa noutro
+ * país. Aqui a adivinhação só acontece com o país que a organização declarou:
+ *
+ *   • `null`/vazio/`BR` — exatamente `normalizePhoneBR` (a coluna vazia
+ *     significa Brasil; nada muda para quem já usa).
+ *   • `PT` — 9 dígitos começando por 2 (fixo) ou 9 (móvel) ganham `+351`;
+ *     `351` + 9 dígitos ganha o `+`.
+ *   • outro país — sem régua local revisada: só aceita o internacional
+ *     (`+` ou `00`). Número sem indicativo é recusado (lead sem telefone), em
+ *     vez de virar o número de outra pessoa.
+ *
+ * Com `+` (ou `00`) vale para todos: 8 a 15 dígitos, como já era.
+ */
+export function normalizePhoneDoPais(raw: unknown, pais: string | null | undefined): string | null {
+  const codigo = (pais ?? "").trim().toUpperCase();
+  if (codigo === "" || codigo === "BR") return normalizePhoneBR(raw);
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const texto = raw.trim();
+  const digits = texto.replace(/\D/g, "");
+  if (texto.startsWith("+")) return /^\d{8,15}$/.test(digits) ? `+${digits}` : null;
+  if (texto.startsWith("00")) {
+    const internacional = digits.slice(2);
+    return /^\d{8,15}$/.test(internacional) ? `+${internacional}` : null;
+  }
+  if (codigo === "PT") {
+    if (/^[29]\d{8}$/.test(digits)) return `+351${digits}`;
+    if (/^351[29]\d{8}$/.test(digits)) return `+${digits}`;
+  }
+  return null;
+}

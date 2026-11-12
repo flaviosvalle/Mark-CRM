@@ -5638,6 +5638,8 @@ export type Database = {
           share_capital: number | null;
           state: string | null;
           street: string | null;
+          tax_id: string | null;
+          tax_id_country: string | null;
           trade_name: string | null;
           updated_at: string;
           zip_code: string | null;
@@ -5671,6 +5673,8 @@ export type Database = {
           share_capital?: number | null;
           state?: string | null;
           street?: string | null;
+          tax_id?: string | null;
+          tax_id_country?: string | null;
           trade_name?: string | null;
           updated_at?: string;
           zip_code?: string | null;
@@ -5703,6 +5707,8 @@ export type Database = {
           share_capital?: number | null;
           state?: string | null;
           street?: string | null;
+          tax_id?: string | null;
+          tax_id_country?: string | null;
           trade_name?: string | null;
           updated_at?: string;
           zip_code?: string | null;

@@ -446,11 +446,21 @@ export async function POST(req: NextRequest, ctx: RouteCtx): Promise<NextRespons
   // O `rdStationMapped ??` é a mesma figura para o envelope `leads[]` do RD
   // Station (achado 2026-09-08), e o `elementorMapped ??` para os campos em
   // colchetes do Elementor. Ordem: Respondi, RD Station, Elementor, genérico.
+  // O país da organização decide o indicativo de telefone sem `+` (Brasil
+  // quando a coluna está vazia). Lido cru, sem o perfil: o perfil cai no
+  // Brasil para país sem perfil revisado, e era isso que punha `+55` em número
+  // português.
+  const { data: orgDaFonte } = await admin
+    .from("organizations")
+    .select("country")
+    .eq("id", source.organization_id)
+    .maybeSingle();
+  const paisDaOrganizacao = (orgDaFonte as { country?: string | null } | null)?.country ?? null;
   const mapped =
     respondiMapped ??
     rdStationMapped ??
     elementorMapped ??
-    mapInboundPayload(externalId ? payloadForMapping : payload, fieldMap);
+    mapInboundPayload(externalId ? payloadForMapping : payload, fieldMap, paisDaOrganizacao);
   if (!mapped.phone) {
     const rawPhone = findRawPhoneIfUnnormalized(payload, fieldMap);
     if (rawPhone) mapped.source_metadata.raw_phone = rawPhone;
