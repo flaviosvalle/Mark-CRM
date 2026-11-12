@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ApiError } from "@/lib/api/types";
 import type { HandlerCtx } from "@/lib/api/handlers/types";
 import { audit } from "@/lib/audit";
+import { type Autor, autoria, autoriaDoAudit } from "@/lib/crm-b2b/autoria";
 import { normalizePersonName } from "@/lib/crm-b2b/normalize";
 import {
   companyPersonCreateSchema,
@@ -80,7 +81,7 @@ export async function getPersonHandler(supabase: SB, ctx: HandlerCtx, id: string
 export async function createPersonHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   raw: unknown,
 ) {
   const body = personCreateSchema.parse(raw);
@@ -90,7 +91,7 @@ export async function createPersonHandler(
     normalized_name: normalizePersonName(body.full_name),
     email: body.email || null,
     notes: body.notes || null,
-    created_by: actorUserId,
+    created_by: autoria(autor).userId,
   };
 
   const { data, error } = await supabase.from("people").insert(insert).select(SELECT).single();
@@ -113,7 +114,7 @@ export async function createPersonHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "people.created",
     resourceType: "people",
     resourceId: data.id,
@@ -126,7 +127,7 @@ export async function createPersonHandler(
 export async function patchPersonHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   id: string,
   raw: unknown,
 ) {
@@ -151,7 +152,7 @@ export async function patchPersonHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "people.updated",
     resourceType: "people",
     resourceId: id,
@@ -163,7 +164,7 @@ export async function patchPersonHandler(
 export async function linkCompanyPersonHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   raw: unknown,
 ) {
   const body = companyPersonCreateSchema.parse(raw);
@@ -189,7 +190,7 @@ export async function linkCompanyPersonHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "company_people.linked",
     resourceType: "company_people",
     resourceId: data.id,
@@ -201,7 +202,7 @@ export async function linkCompanyPersonHandler(
 export async function patchCompanyPersonHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   id: string,
   raw: unknown,
 ) {
@@ -218,7 +219,7 @@ export async function patchCompanyPersonHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "company_people.updated",
     resourceType: "company_people",
     resourceId: id,
@@ -230,7 +231,7 @@ export async function patchCompanyPersonHandler(
 export async function linkContactToPersonHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   contactId: string,
   personId: string | null,
 ) {
@@ -257,7 +258,7 @@ export async function linkContactToPersonHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "contacts.person_linked",
     resourceType: "contacts",
     resourceId: contactId,

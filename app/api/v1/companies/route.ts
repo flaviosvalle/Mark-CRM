@@ -7,6 +7,7 @@ import {
   listCompaniesHandler,
 } from "@/lib/crm-b2b/companies-handler";
 import {
+  autorizarEscritaB2b,
   ctxFromAuthz,
   handleRouteError,
   ok,
@@ -42,14 +43,13 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (desligado) return desligado;
   const supportDenied = await requireSupportWrite();
   if (supportDenied) return supportDenied;
-  const authz = await requireRole("manager", { requestId, resource: "companies" });
+  const authz = await autorizarEscritaB2b(req, requestId, { resource: "companies", role: "manager" });
   if (!authz.ok) return authz.response;
+  const { supabase, ctx, autor } = authz;
 
   try {
     const body = await req.json();
-    const supabase = await createClient();
-    const ctx = ctxFromAuthz(authz, requestId);
-    const data = await createCompanyHandler(supabase, ctx, authz.user.id, body);
+    const data = await createCompanyHandler(supabase, ctx, autor, body);
     return ok(data, { requestId, status: 201 });
   } catch (e) {
     return handleRouteError(e, requestId);

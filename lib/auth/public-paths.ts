@@ -206,6 +206,19 @@ export const PUBLIC_PATHS: RegExp[] = [
   /^\/api\/v1\/ai\/routers\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
   /^\/api\/v1\/ai\/routers\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/members$/i,
   /^\/api\/v1\/ai\/routers\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/test$/i,
+  // CADASTRO B2B POR INTEGRAÇÃO (escopo `crm:write`). Sessão OU Bearer `dsk_…`,
+  // resolvidos por `autorizarEscritaB2b` (`lib/crm-b2b/route-helpers.ts`)
+  // DENTRO das rotas de escrita; a org sai da linha do token. As leituras e o
+  // DELETE destes caminhos continuam só-sessão (`requireRole` na rota), por isso
+  // a passagem pela borda não abre nada sem sessão. Segmentos em forma de UUID
+  // e âncora `$`: `/companies/lookup` e outros irmãos não entram de carona.
+  /^\/api\/v1\/companies$/,
+  /^\/api\/v1\/companies\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  /^\/api\/v1\/people$/,
+  /^\/api\/v1\/people\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  /^\/api\/v1\/company-people$/,
+  /^\/api\/v1\/company-people\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  /^\/api\/v1\/contacts\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/person$/i,
   /^\/_next\//,
   /^\/favicon\.ico$/,
   // O ícone da aba (`app/icon.tsx`), que o `<head>` de TODA página pede —

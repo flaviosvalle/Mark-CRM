@@ -1,17 +1,15 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { requireRole } from "@/lib/auth/require-role";
 import { requireSupportWrite } from "@/lib/impersonate/support";
 import { linkContactToPersonHandler } from "@/lib/crm-b2b/people-handler";
 import {
-  ctxFromAuthz,
+  autorizarEscritaB2b,
   handleRouteError,
   ok,
   requestIdOf,
   seModuloB2bDesligado,
 } from "@/lib/crm-b2b/route-helpers";
-import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -28,20 +26,14 @@ export async function PATCH(req: NextRequest, { params }: Ctx): Promise<Response
   if (desligado) return desligado;
   const supportDenied = await requireSupportWrite();
   if (supportDenied) return supportDenied;
-  const authz = await requireRole("agent", { requestId, resource: "contacts" });
+  const authz = await autorizarEscritaB2b(req, requestId, { resource: "contacts", role: "agent" });
   if (!authz.ok) return authz.response;
+  const { supabase, ctx, autor } = authz;
   const { id } = await params;
 
   try {
     const body = bodySchema.parse(await req.json());
-    const supabase = await createClient();
-    const data = await linkContactToPersonHandler(
-      supabase,
-      ctxFromAuthz(authz, requestId),
-      authz.user.id,
-      id,
-      body.person_id,
-    );
+    const data = await linkContactToPersonHandler(supabase, ctx, autor, id, body.person_id);
     return ok(data, { requestId });
   } catch (e) {
     return handleRouteError(e, requestId);

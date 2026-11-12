@@ -8,6 +8,7 @@ import {
   patchCompanyHandler,
 } from "@/lib/crm-b2b/companies-handler";
 import {
+  autorizarEscritaB2b,
   ctxFromAuthz,
   handleRouteError,
   ok,
@@ -43,20 +44,14 @@ export async function PATCH(req: NextRequest, { params }: Ctx): Promise<Response
   if (desligado) return desligado;
   const supportDenied = await requireSupportWrite();
   if (supportDenied) return supportDenied;
-  const authz = await requireRole("agent", { requestId, resource: "companies" });
+  const authz = await autorizarEscritaB2b(req, requestId, { resource: "companies", role: "agent" });
   if (!authz.ok) return authz.response;
+  const { supabase, ctx, autor } = authz;
   const { id } = await params;
 
   try {
     const body = await req.json();
-    const supabase = await createClient();
-    const data = await patchCompanyHandler(
-      supabase,
-      ctxFromAuthz(authz, requestId),
-      authz.user.id,
-      id,
-      body,
-    );
+    const data = await patchCompanyHandler(supabase, ctx, autor, id, body);
     return ok(data, { requestId });
   } catch (e) {
     return handleRouteError(e, requestId);

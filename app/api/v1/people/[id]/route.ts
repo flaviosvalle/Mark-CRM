@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { requireSupportWrite } from "@/lib/impersonate/support";
 import { getPersonHandler, patchPersonHandler } from "@/lib/crm-b2b/people-handler";
 import {
+  autorizarEscritaB2b,
   ctxFromAuthz,
   handleRouteError,
   ok,
@@ -39,20 +40,14 @@ export async function PATCH(req: NextRequest, { params }: Ctx): Promise<Response
   if (desligado) return desligado;
   const supportDenied = await requireSupportWrite();
   if (supportDenied) return supportDenied;
-  const authz = await requireRole("agent", { requestId, resource: "people" });
+  const authz = await autorizarEscritaB2b(req, requestId, { resource: "people", role: "agent" });
   if (!authz.ok) return authz.response;
+  const { supabase, ctx, autor } = authz;
   const { id } = await params;
 
   try {
     const body = await req.json();
-    const supabase = await createClient();
-    const data = await patchPersonHandler(
-      supabase,
-      ctxFromAuthz(authz, requestId),
-      authz.user.id,
-      id,
-      body,
-    );
+    const data = await patchPersonHandler(supabase, ctx, autor, id, body);
     return ok(data, { requestId });
   } catch (e) {
     return handleRouteError(e, requestId);

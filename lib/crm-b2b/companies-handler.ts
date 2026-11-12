@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ApiError } from "@/lib/api/types";
 import type { HandlerCtx } from "@/lib/api/handlers/types";
 import { audit } from "@/lib/audit";
+import { type Autor, autoria, autoriaDoAudit } from "@/lib/crm-b2b/autoria";
 import {
   createBrasilApiClient,
   mapBrasilApiToCompanyFields,
@@ -96,7 +97,7 @@ export async function getCompanyHandler(supabase: SB, ctx: HandlerCtx, id: strin
 export async function createCompanyHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   raw: unknown,
 ) {
   const body: CompanyCreate = companyCreateSchema.parse(raw);
@@ -129,7 +130,7 @@ export async function createCompanyHandler(
     state: body.state || null,
     zip_code: body.zip_code || null,
     enrichment_status: "pending" as const,
-    created_by: actorUserId,
+    created_by: autoria(autor).userId,
   };
 
   const { data, error } = await supabase.from("companies").insert(insert).select(SELECT).single();
@@ -140,7 +141,7 @@ export async function createCompanyHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "companies.created",
     resourceType: "companies",
     resourceId: data.id,
@@ -161,7 +162,7 @@ export async function createCompanyHandler(
 export async function patchCompanyHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   id: string,
   raw: unknown,
 ) {
@@ -190,7 +191,7 @@ export async function patchCompanyHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "companies.updated",
     resourceType: "companies",
     resourceId: id,
@@ -211,7 +212,7 @@ export async function patchCompanyHandler(
 export async function enrichCompanyHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   id: string,
 ) {
   const result = await enrichCompanyFromBrasilApi(supabase, {
@@ -220,7 +221,7 @@ export async function enrichCompanyHandler(
   });
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "companies.enriched",
     resourceType: "companies",
     resourceId: id,
@@ -276,7 +277,7 @@ export async function lookupCompanyCnpjHandler(
 export async function deleteCompanyHandler(
   supabase: SB,
   ctx: HandlerCtx,
-  actorUserId: string,
+  autor: Autor,
   id: string,
 ) {
   const { data: existing, error: loadErr } = await supabase
@@ -320,7 +321,7 @@ export async function deleteCompanyHandler(
 
   await audit({
     organizationId: ctx.organization_id,
-    actorUserId,
+    ...autoriaDoAudit(autor),
     action: "companies.deleted",
     resourceType: "companies",
     resourceId: id,

@@ -7,6 +7,7 @@ import {
   listPeopleHandler,
 } from "@/lib/crm-b2b/people-handler";
 import {
+  autorizarEscritaB2b,
   ctxFromAuthz,
   handleRouteError,
   ok,
@@ -45,16 +46,16 @@ export async function POST(req: NextRequest): Promise<Response> {
   if (desligado) return desligado;
   const supportDenied = await requireSupportWrite();
   if (supportDenied) return supportDenied;
-  const authz = await requireRole("manager", { requestId, resource: "people" });
+  const authz = await autorizarEscritaB2b(req, requestId, { resource: "people", role: "manager" });
   if (!authz.ok) return authz.response;
+  const { supabase, ctx, autor } = authz;
 
   try {
     const body = await req.json();
-    const supabase = await createClient();
     const data = await createPersonHandler(
       supabase,
-      ctxFromAuthz(authz, requestId),
-      authz.user.id,
+      ctx,
+      autor,
       body,
     );
     return ok(data, { requestId, status: 201 });

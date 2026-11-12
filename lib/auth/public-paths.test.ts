@@ -84,7 +84,7 @@ describe("isPublicPath", () => {
     expect(isPublicPath(`/api/v1/contacts/${contato}/avatar`)).toBe(true);
     expect(isPublicPath(`/api/v1/contacts/${contato}/avatar/extra`)).toBe(false);
     expect(isPublicPath("/api/v1/contacts/qualquer-id/avatar")).toBe(false);
-    expect(isPublicPath(`/api/v1/contacts/${contato}/person`)).toBe(false);
+    expect(isPublicPath(`/api/v1/contacts/${contato}/personal`)).toBe(false);
     expect(isPublicPath("/api/v1/contacts/bulk/avatar")).toBe(false);
   });
 
