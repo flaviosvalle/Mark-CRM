@@ -532,6 +532,9 @@ jobs:
       # O menor escopo que faz o trabalho: reapontar tag no GHCR. Sem o bloco, o
       # GITHUB_TOKEN herdaria o default do REPOSITÓRIO — configuração que vive
       # fora do repo, muda num clique e não passa por PR.
+      # `contents: read` é obrigatório num repositório PRIVADO (o fork da
+      # Ephata): sem ele o checkout responde "repository not found".
+      contents: read
       packages: write
     steps:
       - uses: actions/checkout@v7
