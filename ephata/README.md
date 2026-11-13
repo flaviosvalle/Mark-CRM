@@ -115,6 +115,13 @@ Se aparecer `ghcr.io/melgarafael` no `.env`, **pare**: está a correr o original
 
     **Não** marcar `mcp:write` nem `messages:write`: o token fica no servidor do site e não deve conseguir enviar mensagens. O token aparece só uma vez; guarde-o no `.env` do site (`CRM_API_TOKEN`).
 
+### Estado da VPS de produção (instalada em 2026-11-13)
+
+*   VPS `157.173.111.14` (`vmi3753265`), Ubuntu 24.04, `/opt/mark-crm`, versão `v1.108.100`.
+*   **IPv6 desligado** (`/etc/sysctl.d/99-sem-ipv6.conf`): o IPv6 desta VPS até ao GHCR corta as transferências e o kit, sem conseguir puxar, constrói as imagens localmente (~20 min) dizendo que a arquitetura não serve. `crm.ephata.pt` não tem `AAAA`. Para voltar: apagar o ficheiro e `sysctl --system`.
+*   **SSH só com chave** (`/etc/ssh/sshd_config.d/00-so-chave.conf`). A consola do fornecedor continua a aceitar palavra-passe.
+*   Configuração inicial feita: país `PT`, `Europe/Lisbon`, `EUR`; `crm_b2b` ligado; token `crm-sync (site ephata.pt)` com `crm:write`, `mcp:read`, `role:manager`. O token está em `/opt/mark-crm/.runtime/crm-sync-token` (permissão 600): copiar para o `.env` do site e apagar o ficheiro.
+
 ## Atualizar
 
 O repositório é privado, por isso a procura automática de versões do kit não encontra nada e a VPS não se atualiza sozinha. Para atualizar, indique a versão:
