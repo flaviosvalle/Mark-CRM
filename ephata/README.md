@@ -49,13 +49,13 @@ O GHCR cria os pacotes como **privados**, e o kit só instala imagens que conseg
 
 O código continua privado. As imagens não têm segredos: as chaves entram pelo `.env` da VPS quando os contentores arrancam.
 
-Para confirmar que ficou público (deve dar `200`):
+Para confirmar que ficou público (deve dar `200` nos quatro; `403` = ainda privado; troque a versão pela que vai instalar):
 
 ```sh
 for i in deskcommcrm deskcomm-worker deskcomm-scheduler deskcomm-voice-agent; do
   tok=$(curl -s "https://ghcr.io/token?scope=repository:flaviosvalle/$i:pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
   printf '%s ' "$i"; curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $tok" \
-    -H 'Accept: application/vnd.oci.image.index.v1+json' "https://ghcr.io/v2/flaviosvalle/$i/manifests/stable"
+    -H 'Accept: application/vnd.oci.image.index.v1+json' "https://ghcr.io/v2/flaviosvalle/$i/manifests/1.108.100"
 done
 ```
 
