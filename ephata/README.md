@@ -151,4 +151,5 @@ Pontos a rever em cada merge:
 ## Pendente
 
 *   **Backup do CRM (B6):** `pg_dump` noturno e Storage, cifrados com `age`, por SFTP para o servidor de backup local. O kit já tem `hostgator-setup-kit/backup.sh` (cópia na própria VPS). O envio para o servidor local ainda não está feito. Até lá, a Fase P (dados reais) não deve começar.
-*   **`pnpm test:db`** ainda não correu sobre o patch (sem Docker no computador onde foi feito). Tem de correr antes da Fase P, porque a migração 9348 mexe no esquema.
+*   ~~`pnpm test:db`~~ **feito em 2026-11-14** sobre `v1.108.100` (na VPS, num contentor `node:22` à parte): baseline aplica em install e update sem erro; conferência do kit ok com o `update.sh` do checkout, da `v1.108.100` e da `v1.63.0` (191 regras); 5159 testes passam. Falham 14–17 em 3 ficheiros (`catalogo-operacao-persistida-real`, `webhooks-inbound`, `agenda-meet-export`), quase todos por tempo esgotado (30 s) — **e falham igual no commit do original sem o patch (`9ada417a7`)**, nas mesmas condições. Não são do fork.
+    Para repetir: `CONFERENCIA_KIT_RELEASE=vX.Y.Z` e o `origin` do clone a apontar para o repositório público do original (a conferência busca lá a `v1.63.0`).
